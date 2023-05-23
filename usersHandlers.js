@@ -1,6 +1,31 @@
 const database = require("./database");
 
 const getUsers = (req, res) => {
+
+  let use = "select * from users";
+
+  const useValues = [];
+  
+  
+  if (req.query.language != null) {
+  
+    use += " where language = ?";
+  
+    useValues.push(req.query.language);
+  
+  
+  if (req.query.city != null) {
+  
+    use += " where city <= ?";
+  
+    useValues.push(req.query.city);
+  }
+}
+ else if (req.query.city != null) {
+  use += " where city = ?";
+  useValues.push(req.query.city);
+}
+
     database
   
       .query("select * from users")
@@ -158,6 +183,7 @@ const getUsers = (req, res) => {
       });
   
   };
+
   
 
   module.exports = {
