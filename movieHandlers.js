@@ -187,6 +187,7 @@ const deleteMovie = (req, res) => {
 };
 
 
+
 module.exports = {
   getMovies,
   getMovieById,

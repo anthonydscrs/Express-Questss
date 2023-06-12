@@ -1,195 +1,122 @@
 const database = require("./database");
 
 const getUsers = (req, res) => {
+  const initialSql = "select * from users";
+  const where = [];
 
-  let use = "select * from users";
-
-  const useValues = [];
-  
-  
-  if (req.query.language != null) {
-  
-    use += " where language = ?";
-  
-    useValues.push(req.query.language);
-  
-  
   if (req.query.city != null) {
-  
-    use += " where city <= ?";
-  
-    useValues.push(req.query.city);
+    where.push({
+      column: "city",
+      value: req.query.city,
+      operator: "=",
+    });
   }
-}
- else if (req.query.city != null) {
-  use += " where city = ?";
-  useValues.push(req.query.city);
-}
+  if (req.query.language != null) {
+    where.push({
+      column: "language",
+      value: req.query.language,
+      operator: "=",
+    });
+  }
 
-    database
-  
-      .query("select * from users")
-  
-      .then(([users]) => {
-  
-        res.json(users);
-  
-      })
-  
-      .catch((err) => {
-  
-        console.error(err);
-  
-        res.status(500).send("Error retrieving data from database");
-  
-      });
-  
-  };
+  database
+    .query(
+      where.reduce(
+        (sql, { column, operator }, index) =>
+          `${sql} ${index === 0 ? "where" : "and"} ${column} ${operator} ?`,
+        initialSql
+      ),
+      where.map(({ value }) => value)
+    )
+    .then(([users]) => {
+      res.json(users);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error retrieving data from database");
+    });
+};
 
-  const getUsersById = (req, res) => {
+const getUserById = (req, res) => {
+  const id = parseInt(req.params.id);
 
-    const id = parseInt(req.params.id);
-  
-  
-    database
-  
-      .query("select * from users where id = ?", [id])
-  
-      .then(([users]) => {
-  
-        if (users[0] != null) {
-  
-          res.json(users[0]);
-  
-        } else {
-  
-          res.status(404).send("Not Found");
-  
-        }
-  
-      })
-  
-      .catch((err) => {
-  
-        console.error(err);
-  
-        res.status(500).send("Error retrieving data from database");
-  
-      });
-  
-  };
+  database
+    .query("select * from users where id = ?", [id])
+    .then(([users]) => {
+      if (users[0] != null) {
+        res.json(users[0]);
+      } else {
+        res.status(404).send("Not Found");
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error retrieving data from database");
+    });
+};
 
-  const postUsers = (req, res) => {
+const postUser = (req, res) => {
+  const { firstname, lastname, email, city, language, hashedPassword } =
+    req.body;
 
-    const { firstname, lastname, email, city, language } = req.body;
-  
-  
-    database
-  
-      .query(
-  
-        "INSERT INTO users(firstname, lastname, email, city, language) VALUES (?, ?, ?, ?, ?)",
-  
-        [firstname, lastname, email, city, language]
-  
-      )
-  
-      .then(([result]) => {
-  
-        res.location(`/api/users/${result.insertId}`).sendStatus(201);
-  
-      })
-  
-      .catch((err) => {
-  
-        console.error(err);
-  
-        res.status(500).send("Error saving the users");
-  
-      });
-  
-  };
+  database
+    .query(
+      "INSERT INTO users(firstname, lastname, email, city, language, hashedPassword) VALUES (?, ?, ?, ?, ?, ?)",
+      [firstname, lastname, email, city, language, hashedPassword]
+    )
+    .then(([result]) => {
+      res.location(`/api/users/${result.insertId}`).sendStatus(201);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error saving the user");
+    });
+};
 
-  const updateUser = (req, res) => {
+const updateUser = (req, res) => {
+  const id = parseInt(req.params.id);
+  const { firstname, lastname, email, city, language, hashedPassword } = req.body;
 
-    const id = parseInt(req.params.id);
-  
-    const { firstname, lastname, email, city, language } = req.body;
-  
-  
-    database
-  
-      .query(
-  
-        "UPDATE users set firstname = ?, lastname = ?, email = ?, city = ?, language = ? where id = ?",
-  
-        [firstname, lastname, email, city, language, id]
-  
-      )
-  
-      .then(([result]) => {
-  
-        if (result.affectedRows === 0) {
-  
-          res.status(404).send("Not Found");
-  
-        } else {
-  
-          res.sendStatus(204);
-  
-        }
-  
-      })
-  
-      .catch((err) => {
-  
-        console.error(err);
-  
-        res.status(500).send("Error editing the user");
-  
-      });
-  
-  };
-  
-  const deleteUser = (req, res) => {
+  database
+    .query(
+      "update users set firstname = ?, lastname = ?, email = ?, city = ?, language = ? where id = ?",
+      [firstname, lastname, email, city, language, id, hashedPassword]
+    )
+    .then(([result]) => {
+      if (result.affectedRows === 0) {
+        res.status(404).send("Not Found");
+      } else {
+        res.sendStatus(204);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error editing the user");
+    });
+};
 
-    const id = parseInt(req.params.id);
-  
-  
-    database
-  
-      .query("delete from users where id = ?", [id])
-  
-      .then(([result]) => {
-  
-        if (result.affectedRows === 0) {
-  
-          res.status(404).send("Not Found");
-  
-        } else {
-  
-          res.sendStatus(204);
-  
-        }
-  
-      })
-  
-      .catch((err) => {
-  
-        console.error(err);
-  
-        res.status(500).send("Error deleting the user");
-  
-      });
-  
-  };
+const deleteUser = (req, res) => {
+  const id = parseInt(req.params.id);
 
-  
+  database
+    .query("delete from users where id = ?", [id])
+    .then(([result]) => {
+      if (result.affectedRows === 0) {
+        res.status(404).send("Not Found");
+      } else {
+        res.sendStatus(204);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send("Error deleting the user");
+    });
+};
 
-  module.exports = {
-    getUsers,
-    getUsersById,
-    postUsers,
-    updateUser,
-    deleteUser,
-  };
+module.exports = {
+  getUsers,
+  getUserById,
+  postUser,
+  updateUser,
+  deleteUser,
+};
